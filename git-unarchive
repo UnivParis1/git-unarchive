@@ -1,0 +1,92 @@
+#!/bin/sh -e
+
+die() {
+    echo "$1"
+    exit 1
+}
+usage() {
+    die "usage: git-unarchive [-f] [--rebase] <zip or tar file (or url)>"
+}
+
+if [ "$1" = "-f" ]; then
+    shift
+    force=1
+fi
+if [ "$1" = "--rebase" ]; then
+    shift
+    rebase=1
+fi
+archive="$1"
+
+[ $# = 1 ] || usage
+
+cleanup() {
+    if [ -n "$archive_file_tmp" ]; then
+	rm -f $archive_file_tmp
+    fi
+    if [ -n "$master_branch" ]; then
+	echo "restoring branch $master_branch"
+	git checkout -q "$master_branch"
+    fi
+}
+trap 'cleanup' EXIT
+
+if echo $archive | grep -q '^http'; then
+    archive_file_tmp=`mktemp`
+    archive_file="$archive_file_tmp"
+    archive_commit_msg=$archive
+    if which curl >/dev/null; then
+	curl -o $archive_file $archive
+    elif which wget >/dev/null; then
+	wget -O $archive_file $archive
+    fi
+else
+    archive_file=$archive
+    archive_commit_msg=`basename $archive`
+fi
+[ -e "$archive_file" ] || { echo "$archive_file does not exist"; usage; }
+
+modifs=`git status --short`
+if [ -n "$modifs" -a -z "$force" ]; then
+    die "modifications would be lost. Use option -f to loose them"
+fi
+
+if [ -n "$rebase" ]; then
+    prev_commit=`git log --oneline | sed -n 's/ .*\.\(zip\|tar\|tar\.gz\|war\)$//p' | head -1`
+    [ -n "$prev_commit" ] || die "no previous zip or tar or tar.gz commit"
+    master_branch=`git symbolic-ref HEAD | sed 's!refs/heads/!!'`
+    git checkout -q "$prev_commit"
+fi
+
+# if something has been committed, we must remove committed files
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+    git rm -r -q .
+fi
+# remove untracked files
+git clean -fdx
+
+case $archive in
+    *.zip|*.war)
+	unzip -q "$archive_file" ;;
+    *.tar|*.tar.gz)
+	tar xf $archive_file ;;
+    *)
+	echo "$archive: unknown archive type"
+	exit 1
+esac
+
+files=`ls`
+if [ -d "$files" ]; then
+   echo "stripping $files (moving files in current directory)"
+   find $files -mindepth 1 -maxdepth 1 -exec mv -t. -- {} +
+   rmdir $files
+fi
+
+git add -A
+git commit -q -m "$archive_commit_msg"
+echo committed "$archive_commit_msg"
+
+archive_commit=`git rev-parse HEAD`
+git checkout -q $master_branch
+master_branch=
+git rebase "$archive_commit"
