@@ -5,13 +5,14 @@ die() {
     exit 1
 }
 usage() {
-    die "usage: git-unarchive [-f] [--rebase] <zip or tar file (or url)>"
+    die "usage: git-unarchive [-f] [--rebase] [--partial] <zip or tar file (or url)>"
 }
 
 while [ -n "$1" ]; do
     case "$1" in
 	-f|--force) force=1 ;;
 	--rebase) rebase=1 ;;
+	--partial) partial=1 ;;
 	(--) shift; break ;;
 	(-*) echo "git-unarchive: error - unrecognized option $1"; usage ;;
 	*) break ;;
@@ -61,16 +62,18 @@ if [ -n "$rebase" ]; then
     git checkout -q "$prev_commit"
 fi
 
-# if something has been committed, we must remove committed files
-if git rev-parse --verify HEAD >/dev/null 2>&1; then
-    git rm -r -q .
+if [ -z "$partial" ]; then
+  # if something has been committed, we must remove committed files
+  if git rev-parse --verify HEAD >/dev/null 2>&1; then
+      git rm -r -q .
+  fi
+  # remove untracked files
+  git clean -fdx
 fi
-# remove untracked files
-git clean -fdx
 
 case $archive in
     *.zip|*.war)
-	unzip -q "$archive_file" ;;
+	unzip -o -q "$archive_file" ;;
     *.tar|*.tar.gz)
 	tar xf $archive_file ;;
     *)
