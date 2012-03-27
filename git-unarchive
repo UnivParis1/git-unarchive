@@ -24,6 +24,11 @@ archive="$1"
 
 [ $# = 1 ] || usage
 
+modifs=`git status --short`
+if [ -n "$modifs" -a -z "$force" ]; then
+    die "To use git-unarchive you must have no modifications nor uncommitted files. You have:\n$modifs\nUse 'git-unarchive -f ...' to loose files and/or changes"
+fi
+
 cleanup() {
     if [ -n "$archive_file_tmp" ]; then
 	rm -f $archive_file_tmp
@@ -49,11 +54,6 @@ else
     archive_commit_msg=`basename $archive`
 fi
 [ -e "$archive_file" ] || { echo "$archive_file does not exist"; usage; }
-
-modifs=`git status --short`
-if [ -n "$modifs" -a -z "$force" ]; then
-    die "modifications would be lost. Use option -f to loose them"
-fi
 
 if [ -n "$rebase" ]; then
     prev_commit=`git log --oneline | sed -n 's/ .*\.\(zip\|tar\|tar\.gz\|war\)$//p' | head -1`
