@@ -8,14 +8,17 @@ usage() {
     die "usage: git-unarchive [-f] [--rebase] <zip or tar file (or url)>"
 }
 
-if [ "$1" = "-f" ]; then
+while [ -n "$1" ]; do
+    case "$1" in
+	-f|--force) force=1 ;;
+	--rebase) rebase=1 ;;
+	(--) shift; break ;;
+	(-*) echo "git-unarchive: error - unrecognized option $1"; usage ;;
+	*) break ;;
+    esac
     shift
-    force=1
-fi
-if [ "$1" = "--rebase" ]; then
-    shift
-    rebase=1
-fi
+done
+
 archive="$1"
 
 [ $# = 1 ] || usage
