@@ -56,7 +56,7 @@ fi
 [ -e "$archive_file" ] || { echo "$archive_file does not exist"; usage; }
 
 if [ -n "$rebase" ]; then
-    prev_commit=`git log --oneline | sed -n 's/ .*\.\(zip\|tar\|tar\.gz\|war\)$//p' | head -1`
+    prev_commit=`git log --oneline | sed -n 's/ .*\.\(zip\|tar\|tar\.gz\|tgz\|war\)$//p' | head -1`
     [ -n "$prev_commit" ] || die "no previous zip or tar or tar.gz commit"
     master_branch=`git symbolic-ref HEAD | sed 's!refs/heads/!!'`
     git checkout -q "$prev_commit"
@@ -74,7 +74,7 @@ fi
 case $archive in
     *.zip|*.war)
 	unzip -o -q "$archive_file" ;;
-    *.tar|*.tar.gz)
+    *.tar|*.tar.gz|*.tgz)
 	tar xf $archive_file ;;
     *)
 	echo "$archive: unknown archive type"
