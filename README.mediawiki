@@ -16,7 +16,7 @@ committed http:/xxx/zzz-1.1.1.zip
 == Rebase ==
 
 <pre>
-% git-unarchive http:/xxx/zzz-1.1.2.zip
+% git-unarchive --rebase http:/xxx/zzz-1.1.2.zip
 stripping zzz-1.1.2 (moving files in current directory)
 committed http:/xxx/zzz-1.1.2.zip
 First, rewinding head to replay your work on top of it...
