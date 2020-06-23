@@ -70,6 +70,9 @@ if [ -z "$partial" ]; then
   # remove untracked files
   git clean -fdx
 fi
+if [ -n "$partial" -a -n "$force" ]; then
+  rm -rf *
+fi
 
 case $archive in
     *.zip|*.war)
@@ -86,6 +89,10 @@ if [ -d "$files" ]; then
    echo "stripping $files (moving files in current directory)"
    find $files -mindepth 1 -maxdepth 1 -exec mv -t. -- {} +
    rmdir $files
+fi
+
+if [ -n "$partial" -a -n "$force" ]; then
+   git ls-files -z | xargs -0 git checkout
 fi
 
 git add -A
